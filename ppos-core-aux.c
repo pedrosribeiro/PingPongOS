@@ -6,6 +6,39 @@
 // Coloque aqui as suas modificações, p.ex. includes, defines variáveis, 
 // estruturas e funções
 
+/*
+Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro para a
+próxima tarefa a receber o processador
+*/
+task_t * scheduler() {
+    // FCFS scheduler
+    if ( readyQueue != NULL ) {
+        return readyQueue;
+    }
+    return NULL;
+}
+
+/*
+Esta função ajusta a prioridade com base no tempo de execução total estimado para a tarefa.
+Caso task seja nulo, ajusta a prioridade da tarefa atual.
+Quando a tarefa já está e execução, essa função deve sobrescrever tanto o valor estimado 
+do tempo de execução como também o valor do tempo que ainda resta para a tarefa terminar sua execução.
+*/
+void task_set_eet (task_t *task, int et) {}
+
+/*
+Esta função devolve o valor do tempo estimado de execução da tarefa task (ou da tarefa corrente, se task for nulo).
+*/
+int task_get_eet(task_t *task) {
+    return 0;
+}
+
+/*
+Esta função devolve o valor do tempo restante para terminar a execução da tarefa task (ou da tarefa corrente, se task for nulo).
+*/
+int task_get_ret(task_t *task) {
+    return 0;
+}
 
 // ****************************************************************************
 
@@ -395,13 +428,3 @@ int after_mqueue_msgs (mqueue_t *queue) {
 #endif
     return 0;
 }
-
-task_t * scheduler() {
-    // FCFS scheduler
-    if ( readyQueue != NULL ) {
-        return readyQueue;
-    }
-    return NULL;
-}
-
-
