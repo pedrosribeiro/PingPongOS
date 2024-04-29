@@ -113,6 +113,17 @@ void tratador (int signum) {
     // Incrementa o contador de tempo global do sistema em ticks
     systemTime++;
 
+    /* O tratador do temporizador deve sempre verificar se a tarefa corrente é 
+    de usuário ou de sistema, antes de preemptá-la devido ao fim de um quantum. 
+    Pode ser adicionado um flag na estrutura de controle de cada tarefa para 
+    indicar se é uma tarefa de sistema ou de usuário
+    */
+    if (taskExec->quantum == 0) {
+        if (preemption == 1) {
+            task_yield(); // libera o processador para a próxima tarefa, retornando à fila de tarefas prontas ("ready queue")
+        }
+    }
+
     // Decrementa um tick do quantum
     (taskExec->quantum)--;
 
