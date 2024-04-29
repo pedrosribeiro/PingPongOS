@@ -47,6 +47,16 @@ task_t * scheduler() {
     // Define o tempo de quantum para a próxima tarefa a ser executada
     nextTask->quantum = 20;
 
+    /*
+    Verifica se a próxima tarefa é o dispatcher (tarefa do sistema que não deve ser preemptada, pois 
+    é responsável por realizar a troca de contexto).
+    */
+    if (nextTask->id == taskDisp->id) {
+        preemption = '0';
+    } else {
+        preemption = '1';
+    }
+
     // Retorna a tarefa com o menor tempo restante de execução
     return nextTask;
 }
@@ -119,7 +129,7 @@ void tratador (int signum) {
     indicar se é uma tarefa de sistema ou de usuário
     */
     if (taskExec->quantum == 0) {
-        if (preemption == 1) {
+        if (preemption == '1') {
             task_yield(); // libera o processador para a próxima tarefa, retornando à fila de tarefas prontas ("ready queue")
         }
     }
