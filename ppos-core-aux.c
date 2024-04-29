@@ -44,6 +44,9 @@ task_t * scheduler() {
         currentTask = currentTask->next;
     }
 
+    // Define o tempo de quantum para a próxima tarefa a ser executada
+    nextTask->quantum = 20;
+
     // Retorna a tarefa com o menor tempo restante de execução
     return nextTask;
 }
@@ -96,11 +99,25 @@ void after_task_create (task_t *task ) {
     task->remainingTime = 0;
     task->estimatedTime = 99999; // Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
     task->cpuTime = 0;
+    task->quantum = 0;
 }
 
-// tratador do sinal
+/*
+Ao ser acionada, a rotina de tratamento de ticks de relógio deve decrementar o contador de
+quantum da tarefa corrente, se for uma tarefa de usuário;
+*/
 void tratador (int signum) {
-    printf ("Recebi o sinal %d\n", signum) ;
+    //printf ("Recebi o sinal %d\n", signum) ;
+
+    // Para a contabilização você precisará de uma referência de tempo global, ou seja, um relógio do sistema.
+    // Incrementa o contador de tempo global do sistema em ticks
+    systemTime++;
+
+    // Decrementa um tick do quantum
+    (taskExec->quantum)--;
+
+    // Incrementa um tick no tempo de CPU usado
+    (taskExec->cpuTime)++;
 }
 
 /*
