@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <sys/time.h>
 
+// #define DEBUG
+
 // estrutura que define um tratador de sinal (deve ser global ou static)
 struct sigaction action ;
 
@@ -21,27 +23,34 @@ próxima tarefa a receber o processador
 */
 task_t * scheduler() {
 
-    if (readyQueue == NULL) {
-        return NULL;
+    //taskMain->id = 0 e taskDisp->id == 1
+
+    if (readyQueue == NULL || readyQueue->id == 0) {
+        return readyQueue;
     }
 
-    // Pega a primeira tarefa da fila de prontas
     task_t *currentTask = readyQueue;
 
     // Define inicialmente o menor tempo restante como o da tarefa atual
     int shortestTime = task_get_ret(currentTask);
-
+    
     // Próxima tarefa a ser executada
-    task_t *nextTask = NULL;
+    task_t *nextTask = currentTask;
 
     // Percorre toda a fila de tarefas prontas procurando a de menor tempo restante de execução para retornar
     while (currentTask != NULL) {
-        if (task_get_ret(currentTask) < shortestTime) {
+        if (task_get_ret(currentTask) < shortestTime && currentTask->id != 0) {
             shortestTime = task_get_ret(currentTask);
             nextTask = currentTask; 
         }
+        // printf("\n current task %d\n readyQueue  %d ", currentTask->id,readyQueue->id);
 
+        //Problema atual é que a task menu vai pra fila de prontas e ela é a prox escolhida
+        printf("\ntask- id: %d, et: %d, state: %c\n",currentTask->id, currentTask->estimatedTime, currentTask->state);
         currentTask = currentTask->next;
+        if(currentTask == readyQueue){
+            break;
+        }
     }
 
     // Define o tempo de quantum para a próxima tarefa a ser executada
@@ -74,7 +83,7 @@ void task_set_eet (task_t *task, int et) {
     }
 
     task->estimatedTime = et;
-    task->remainingTime = et - task->cpuTime;
+    task->remainingTime = et - task->running_time;
 }
 
 /*
@@ -108,7 +117,7 @@ void after_task_create (task_t *task ) {
 #endif
     task->remainingTime = 0;
     task->estimatedTime = 99999; // Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
-    task->cpuTime = 0;
+    task->running_time = 0;
     task->quantum = 0;
 }
 
@@ -117,7 +126,9 @@ Ao ser acionada, a rotina de tratamento de ticks de relógio deve decrementar o 
 quantum da tarefa corrente, se for uma tarefa de usuário;
 */
 void tratador (int signum) {
-    //printf ("Recebi o sinal %d\n", signum) ;
+    #ifndef DEBUG
+        // printf ("Running %d\n", taskExec->running_time) ;
+    #endif
 
     // Para a contabilização você precisará de uma referência de tempo global, ou seja, um relógio do sistema.
     // Incrementa o contador de tempo global do sistema em ticks
@@ -138,7 +149,7 @@ void tratador (int signum) {
     (taskExec->quantum)--;
 
     // Incrementa um tick no tempo de CPU usado
-    (taskExec->cpuTime)++;
+    (taskExec->running_time)++;
 }
 
 /*
@@ -214,6 +225,7 @@ void before_task_switch ( task_t *task ) {
 #ifdef DEBUG
     printf("\ntask_switch - BEFORE - [%d -> %d]", taskExec->id, task->id);
 #endif
+
 }
 
 void after_task_switch ( task_t *task ) {

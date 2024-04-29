@@ -27,7 +27,7 @@ typedef struct task_t
    // ... (outros campos deve ser adicionados APOS esse comentario)
    int remainingTime;   // Tempo restante para terminar a execução da tarefa
    int estimatedTime;   // Tempo estimado de execução da tarefa
-   int cpuTime;         // Tempo de CPU já consumido pela tarefa
+   int running_time;    // Tempo de CPU já consumido pela tarefa
    int quantum;         // Tempo de quantum atribuído à tarefa para execução
    
 } task_t ;
