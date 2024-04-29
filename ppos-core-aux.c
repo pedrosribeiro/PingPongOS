@@ -11,33 +11,72 @@ Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro
 próxima tarefa a receber o processador
 */
 task_t * scheduler() {
-    // FCFS scheduler
-    if ( readyQueue != NULL ) {
-        return readyQueue;
+
+    if (readyQueue == NULL) {
+        return NULL;
     }
-    return NULL;
+
+    // Pega a primeira tarefa da fila de prontas
+    task_t *currentTask = readyQueue;
+
+    // Define inicialmente o menor tempo restante como o da tarefa atual
+    int shortestTime = task_get_ret(currentTask);
+
+    // Próxima tarefa a ser executada
+    task_t *nextTask = NULL;
+
+    // Percorre toda a fila de tarefas prontas procurando a de menor tempo restante de execução para retornar
+    while (currentTask != NULL) {
+        if (task_get_ret(currentTask) < shortestTime) {
+            shortestTime = task_get_ret(currentTask);
+            nextTask = currentTask; 
+        }
+
+        currentTask = currentTask->next;
+    }
+
+    // Retorna a tarefa com o menor tempo restante de execução
+    return nextTask;
 }
 
 /*
 Esta função ajusta a prioridade com base no tempo de execução total estimado para a tarefa.
 Caso task seja nulo, ajusta a prioridade da tarefa atual.
-Quando a tarefa já está e execução, essa função deve sobrescrever tanto o valor estimado 
+Quando a tarefa já está em execução, essa função deve sobrescrever tanto o valor estimado 
 do tempo de execução como também o valor do tempo que ainda resta para a tarefa terminar sua execução.
 */
-void task_set_eet (task_t *task, int et) {}
+void task_set_eet (task_t *task, int et) {
+
+    if (task == NULL) {
+        task = taskExec;
+    }
+
+    task->estimatedTime = et;
+    task->remainingTime = et - task->cpuTime;
+}
 
 /*
 Esta função devolve o valor do tempo estimado de execução da tarefa task (ou da tarefa corrente, se task for nulo).
 */
 int task_get_eet(task_t *task) {
-    return 0;
+
+    if (task == NULL) {
+        return taskExec->estimatedTime;
+    }
+
+    return task->estimatedTime;
 }
 
 /*
 Esta função devolve o valor do tempo restante para terminar a execução da tarefa task (ou da tarefa corrente, se task for nulo).
 */
 int task_get_ret(task_t *task) {
-    return 0;
+
+    if (task == NULL) {
+        return taskExec->remainingTime;
+    }
+
+    return task->remainingTime;
 }
 
 // ****************************************************************************
@@ -70,6 +109,9 @@ void after_task_create (task_t *task ) {
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
+    task->remainingTime = 0;
+    task->estimatedTime = 0;
+    task->cpuTime = 0;
 }
 
 void before_task_exit () {
