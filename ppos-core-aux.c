@@ -17,6 +17,11 @@ struct sigaction action ;
 // estrutura de inicialização to timer
 struct itimerval timer ;
 
+//Inicialização de funções
+void task_set_eet (task_t *task, int et);
+int task_get_ret(task_t *task);
+int task_get_eet(task_t *task);
+
 /*
 Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro para a
 próxima tarefa a receber o processador
@@ -24,16 +29,15 @@ próxima tarefa a receber o processador
 task_t * scheduler() {
 
     //taskMain->id = 0 e taskDisp->id == 1
-
-    if (readyQueue == NULL || readyQueue->id == 0) {
+    
+    if(readyQueue == NULL)
         return readyQueue;
-    }
+
+    // Setando menor tempo alto
+    int shortestTime = 99999;
 
     task_t *currentTask = readyQueue;
 
-    // Define inicialmente o menor tempo restante como o da tarefa atual
-    int shortestTime = task_get_ret(currentTask);
-    
     // Próxima tarefa a ser executada
     task_t *nextTask = currentTask;
 
@@ -43,10 +47,9 @@ task_t * scheduler() {
             shortestTime = task_get_ret(currentTask);
             nextTask = currentTask; 
         }
-        // printf("\n current task %d\n readyQueue  %d ", currentTask->id,readyQueue->id);
+        // printf("\n current task  et %d id  %d ", currentTask->estimatedTime,currentTask->id);
+        // printf("\n nextTask- id: %d, et: %d, state: %c\n",nextTask->id, nextTask->estimatedTime, nextTask->state);
 
-        //Problema atual é que a task menu vai pra fila de prontas e ela é a prox escolhida
-        //printf("\ntask- id: %d, et: %d, state: %c\n",currentTask->id, currentTask->estimatedTime, currentTask->state);
         currentTask = currentTask->next;
         if(currentTask == readyQueue){
             break;
@@ -60,7 +63,7 @@ task_t * scheduler() {
     Verifica se a próxima tarefa é o dispatcher (tarefa do sistema que não deve ser preemptada, pois 
     é responsável por realizar a troca de contexto).
     */
-    if (nextTask->id == taskDisp->id) {
+    if (nextTask->id == taskDisp->id || nextTask->id == taskMain->id) {
         preemption = '0';
     } else {
         preemption = '1';
@@ -81,9 +84,9 @@ void task_set_eet (task_t *task, int et) {
     if (task == NULL) {
         task = taskExec;
     }
-
     task->estimatedTime = et;
     task->remainingTime = et - task->running_time;
+    
 }
 
 /*
@@ -94,7 +97,7 @@ int task_get_eet(task_t *task) {
     if (task == NULL) {
         return taskExec->estimatedTime;
     }
-
+    
     return task->estimatedTime;
 }
 
@@ -212,6 +215,8 @@ void after_task_switch ( task_t *task ) {
     printf("\ntask_switch - AFTER - [%d -> %d]", taskExec->id, task->id);
 #endif
     (task->activations)++; // incrementa o contador de ativações da tarefa
+
+
 }
 
 // ****************************************************************************
