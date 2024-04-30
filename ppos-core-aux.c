@@ -46,7 +46,7 @@ task_t * scheduler() {
         // printf("\n current task %d\n readyQueue  %d ", currentTask->id,readyQueue->id);
 
         //Problema atual é que a task menu vai pra fila de prontas e ela é a prox escolhida
-        printf("\ntask- id: %d, et: %d, state: %c\n",currentTask->id, currentTask->estimatedTime, currentTask->state);
+        //printf("\ntask- id: %d, et: %d, state: %c\n",currentTask->id, currentTask->estimatedTime, currentTask->state);
         currentTask = currentTask->next;
         if(currentTask == readyQueue){
             break;
@@ -119,6 +119,10 @@ void after_task_create (task_t *task ) {
     task->estimatedTime = 99999; // Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
     task->running_time = 0;
     task->quantum = 0;
+    task->processingTime = 0;
+    task->startTime = systime(); // Guarda o tempo de quando a tarefa foi criada
+    task->endTime = 0;
+    task->activations = 0;
 }
 
 /*
@@ -186,6 +190,28 @@ void after_ppos_init () {
     printf("\ninit - AFTER");
 #endif
     programa_temporizador();
+    printf("PPOS intialized successfully...\n");
+}
+
+void after_task_exit () {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ntask_exit - AFTER- [%d]", taskExec->id);
+#endif
+    taskExec->endTime = systime();
+    taskExec->processingTime = taskExec->endTime - taskExec->startTime;
+
+    printf("\nTask %d exit: execution time %d ms, processor time %d ms, %d activations \n", 
+            taskExec->id, taskExec->processingTime, taskExec->running_time, taskExec->activations);
+}
+
+// Após o retorno dessa funcao, eh realizada a troca de contexto [swapcontext()] para a tarefa indicada no parâmetro
+void after_task_switch ( task_t *task ) {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ntask_switch - AFTER - [%d -> %d]", taskExec->id, task->id);
+#endif
+    (task->activations)++; // incrementa o contador de ativações da tarefa
 }
 
 // ****************************************************************************
@@ -213,26 +239,12 @@ void before_task_exit () {
 #endif
 }
 
-void after_task_exit () {
-    // put your customization here
-#ifdef DEBUG
-    printf("\ntask_exit - AFTER- [%d]", taskExec->id);
-#endif
-}
-
 void before_task_switch ( task_t *task ) {
     // put your customization here
 #ifdef DEBUG
     printf("\ntask_switch - BEFORE - [%d -> %d]", taskExec->id, task->id);
 #endif
 
-}
-
-void after_task_switch ( task_t *task ) {
-    // put your customization here
-#ifdef DEBUG
-    printf("\ntask_switch - AFTER - [%d -> %d]", taskExec->id, task->id);
-#endif
 }
 
 void before_task_yield () {

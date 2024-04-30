@@ -29,6 +29,10 @@ typedef struct task_t
    int estimatedTime;   // Tempo estimado de execução da tarefa
    int running_time;    // Tempo de CPU já consumido pela tarefa
    int quantum;         // Tempo de quantum atribuído à tarefa para execução
+   int processingTime;  // Tempo total de processamento da tarefa (running + waiting)
+   int startTime;       // Início da tarefa
+   int endTime;         // Fim da tarefa
+   int activations;     // Número de vezes que a tarefa entrou no procesador
    
 } task_t ;
 
