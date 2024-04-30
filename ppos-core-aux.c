@@ -1,5 +1,6 @@
 #include "ppos.h"
 #include "ppos-core-globals.h"
+#include "ppos_data.h"
 
 
 // ****************************************************************************
@@ -63,7 +64,7 @@ task_t * scheduler() {
     Verifica se a próxima tarefa é o dispatcher (tarefa do sistema que não deve ser preemptada, pois 
     é responsável por realizar a troca de contexto).
     */
-    if (nextTask->id == taskDisp->id || nextTask->id == taskMain->id) {
+    if (nextTask->id == taskDisp->id) {
         preemption = '0';
     } else {
         preemption = '1';
@@ -215,8 +216,6 @@ void after_task_switch ( task_t *task ) {
     printf("\ntask_switch - AFTER - [%d -> %d]", taskExec->id, task->id);
 #endif
     (task->activations)++; // incrementa o contador de ativações da tarefa
-
-
 }
 
 // ****************************************************************************
@@ -292,6 +291,8 @@ void after_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif
+    (task->activations)++; // incrementa o contador de ativações da tarefa
+
 }
 
 void before_task_sleep () {
