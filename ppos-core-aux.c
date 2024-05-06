@@ -18,11 +18,6 @@ struct sigaction action ;
 // estrutura de inicialização to timer
 struct itimerval timer ;
 
-//Inicialização de funções
-void task_set_eet (task_t *task, int et);
-int task_get_ret(task_t *task);
-int task_get_eet(task_t *task);
-
 /*
 Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro para a
 próxima tarefa a receber o processador
@@ -48,11 +43,16 @@ task_t * scheduler() {
             shortestTime = task_get_ret(currentTask);
             nextTask = currentTask; 
         }
-        // printf("\n current task  et %d id  %d ", currentTask->estimatedTime,currentTask->id);
-        // printf("\n nextTask- id: %d, et: %d, state: %c\n",nextTask->id, nextTask->estimatedTime, nextTask->state);
+
+        #ifdef DEBUG
+        printf("\n current task  et %d id  %d ", currentTask->estimatedTime,currentTask->id);
+        printf("\n nextTask- id: %d, et: %d, state: %c\n",nextTask->id, nextTask->estimatedTime, nextTask->state);
+        #endif
 
         currentTask = currentTask->next;
-        if(currentTask == readyQueue){
+
+        // Para finalizar o loop, aqui verifica se retornou ao começo
+        if(currentTask == readyQueue){ 
             break;
         }
     }
@@ -62,7 +62,7 @@ task_t * scheduler() {
 
     /*
     Verifica se a próxima tarefa é o dispatcher (tarefa do sistema que não deve ser preemptada, pois 
-    é responsável por realizar a troca de contexto).
+    é responsável por realizar a troca de contexto). No enunciado do trabalho, diz que Menu é tarefa de usuário.
     */
     if (nextTask->id == taskDisp->id) {
         preemption = '0';
@@ -119,6 +119,7 @@ void after_task_create (task_t *task ) {
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
+    // Inicializa os valores das tasks
     task->remainingTime = 0;
     task->estimatedTime = 99999; // Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
     task->running_time = 0;
@@ -205,6 +206,7 @@ void after_task_exit () {
     taskExec->endTime = systime();
     taskExec->processingTime = taskExec->endTime - taskExec->startTime;
 
+    //Impressão das métricas:
     printf("\nTask %d exit: execution time %d ms, processor time %d ms, %d activations \n", 
             taskExec->id, taskExec->processingTime, taskExec->running_time, taskExec->activations);
 }
