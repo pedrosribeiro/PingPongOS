@@ -1,0 +1,218 @@
+// ****************************************************************************
+// Coloque aqui as suas modificações, p.ex. includes, defines variáveis, 
+// estruturas e funções
+
+#include <signal.h>
+#include <sys/time.h>
+
+// #define DEBUG
+
+// estrutura que define um tratador de sinal (deve ser global ou static)
+struct sigaction action ;
+
+// estrutura de inicialização to timer
+struct itimerval timer ;
+
+/*
+Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro para a
+próxima tarefa a receber o processador
+*/
+task_t * scheduler() {
+
+    //taskMain->id = 0 e taskDisp->id == 1
+    
+    if(readyQueue == NULL)
+        return readyQueue;
+
+    // Setando menor tempo alto
+    int shortestTime = 99999;
+
+    task_t *currentTask = readyQueue;
+
+    // Próxima tarefa a ser executada
+    task_t *nextTask = currentTask;
+
+    // Percorre toda a fila de tarefas prontas procurando a de menor tempo restante de execução para retornar
+    while (currentTask != NULL) {
+        if (task_get_ret(currentTask) < shortestTime && currentTask->id != 0) {
+            shortestTime = task_get_ret(currentTask);
+            nextTask = currentTask; 
+        }
+
+        #ifdef DEBUG
+        printf("\n current task  et %d id  %d ", currentTask->estimatedTime,currentTask->id);
+        printf("\n nextTask- id: %d, et: %d, state: %c\n",nextTask->id, nextTask->estimatedTime, nextTask->state);
+        #endif
+
+        currentTask = currentTask->next;
+
+        // Para finalizar o loop, aqui verifica se retornou ao começo
+        if(currentTask == readyQueue){ 
+            break;
+        }
+    }
+
+    // Define o tempo de quantum para a próxima tarefa a ser executada
+    nextTask->quantum = 20;
+
+    /*
+    Verifica se a próxima tarefa é o dispatcher (tarefa do sistema que não deve ser preemptada, pois 
+    é responsável por realizar a troca de contexto). No enunciado do trabalho, diz que Menu é tarefa de usuário.
+    */
+    if (nextTask->id == taskDisp->id) {
+        preemption = '0';
+    } else {
+        preemption = '1';
+    }
+
+    // Retorna a tarefa com o menor tempo restante de execução
+    return nextTask;
+}
+
+/*
+Esta função ajusta a prioridade com base no tempo de execução total estimado para a tarefa.
+Caso task seja nulo, ajusta a prioridade da tarefa atual.
+Quando a tarefa já está em execução, essa função deve sobrescrever tanto o valor estimado 
+do tempo de execução como também o valor do tempo que ainda resta para a tarefa terminar sua execução.
+*/
+void task_set_eet (task_t *task, int et) {
+
+    if (task == NULL) {
+        task = taskExec;
+    }
+    task->estimatedTime = et;
+    task->remainingTime = et - task->running_time;
+    
+}
+
+/*
+Esta função devolve o valor do tempo estimado de execução da tarefa task (ou da tarefa corrente, se task for nulo).
+*/
+int task_get_eet(task_t *task) {
+
+    if (task == NULL) {
+        return taskExec->estimatedTime;
+    }
+    
+    return task->estimatedTime;
+}
+
+/*
+Esta função devolve o valor do tempo restante para terminar a execução da tarefa task (ou da tarefa corrente, se task for nulo).
+*/
+int task_get_ret(task_t *task) {
+
+    if (task == NULL) {
+        return taskExec->remainingTime;
+    }
+
+    return task->remainingTime;
+}
+
+void after_task_create (task_t *task ) {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ntask_create - AFTER - [%d]", task->id);
+#endif
+    // Inicializa os valores das tasks
+    task->remainingTime = 0;
+    task->estimatedTime = 99999; // Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
+    task->running_time = 0;
+    task->quantum = 0;
+    task->processingTime = 0;
+    task->startTime = systime(); // Guarda o tempo de quando a tarefa foi criada
+    task->endTime = 0;
+    task->activations = 0;
+}
+
+/*
+Ao ser acionada, a rotina de tratamento de ticks de relógio deve decrementar o contador de
+quantum da tarefa corrente, se for uma tarefa de usuário;
+*/
+void tratador (int signum) {
+    #ifndef DEBUG
+        // printf ("Running %d\n", taskExec->running_time) ;
+    #endif
+
+    // Para a contabilização você precisará de uma referência de tempo global, ou seja, um relógio do sistema.
+    // Incrementa o contador de tempo global do sistema em ticks
+    systemTime++;
+
+    /* O tratador do temporizador deve sempre verificar se a tarefa corrente é 
+    de usuário ou de sistema, antes de preemptá-la devido ao fim de um quantum. 
+    Pode ser adicionado um flag na estrutura de controle de cada tarefa para 
+    indicar se é uma tarefa de sistema ou de usuário
+    */
+    if (taskExec->quantum == 0) {
+        if (preemption == '1') {
+            task_yield(); // libera o processador para a próxima tarefa, retornando à fila de tarefas prontas ("ready queue")
+        }
+    }
+
+    // Decrementa um tick do quantum
+    (taskExec->quantum)--;
+
+    // Incrementa um tick no tempo de CPU usado
+    (taskExec->running_time)++;
+}
+
+/*
+Durante a inicialização do sistema, um temporizador deve ser programado para disparar a cada 1 milissegundo;
+*/
+void programa_temporizador() {
+
+    // registra a ação para o sinal de timer SIGALRM
+    action.sa_handler = tratador ;
+    sigemptyset (&action.sa_mask) ;
+    action.sa_flags = 0 ;
+    if (sigaction (SIGALRM, &action, 0) < 0)
+    {
+        perror ("Erro em sigaction: ") ;
+        exit (1) ;
+    }
+
+    // ajusta valores do temporizador para disparar a cada 1ms
+    timer.it_value.tv_usec = 1000;      // primeiro disparo, em micro-segundos
+    timer.it_value.tv_sec = 0;          // primeiro disparo, em segundos
+    timer.it_interval.tv_usec = 1000;   // disparos subsequentes, em micro-segundos
+    timer.it_interval.tv_sec = 0;       // disparos subsequentes, em segundos
+
+    // arma o temporizador ITIMER_REAL (vide man setitimer)
+    if (setitimer (ITIMER_REAL, &timer, 0) < 0) {
+        perror ("Erro em setitimer: ") ;
+        exit (1) ;
+    }
+}
+
+void after_ppos_init () {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ninit - AFTER");
+#endif
+    programa_temporizador();
+    printf("PPOS intialized successfully...\n");
+}
+
+void after_task_exit () {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ntask_exit - AFTER- [%d]", taskExec->id);
+#endif
+    taskExec->endTime = systime();
+    taskExec->processingTime = taskExec->endTime - taskExec->startTime;
+
+    //Impressão das métricas:
+    printf("\nTask %d exit: execution time %d ms, processor time %d ms, %d activations \n", 
+            taskExec->id, taskExec->processingTime, taskExec->running_time, taskExec->activations);
+}
+
+// Após o retorno dessa funcao, eh realizada a troca de contexto [swapcontext()] para a tarefa indicada no parâmetro
+void after_task_switch ( task_t *task ) {
+    // put your customization here
+#ifdef DEBUG
+    printf("\ntask_switch - AFTER - [%d -> %d]", taskExec->id, task->id);
+#endif
+    (task->activations)++; // incrementa o contador de ativações da tarefa
+}
+
+// ****************************************************************************

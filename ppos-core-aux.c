@@ -293,8 +293,6 @@ void after_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif
-    (task->activations)++; // incrementa o contador de ativações da tarefa
-
 }
 
 void before_task_sleep () {
