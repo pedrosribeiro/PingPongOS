@@ -18,6 +18,12 @@ struct sigaction action ;
 // estrutura de inicialização to timer
 struct itimerval timer ;
 
+void task_set_eet(task_t *task, int et);
+int task_get_eet(task_t *task);
+int task_get_ret(task_t *task);
+
+//Projeto A abaixo
+
 /*
 Função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro para a
 próxima tarefa a receber o processador
@@ -80,7 +86,7 @@ Caso task seja nulo, ajusta a prioridade da tarefa atual.
 Quando a tarefa já está em execução, essa função deve sobrescrever tanto o valor estimado 
 do tempo de execução como também o valor do tempo que ainda resta para a tarefa terminar sua execução.
 */
-void task_set_eet (task_t *task, int et) {
+void task_set_eet(task_t *task, int et) {
 
     if (task == NULL) {
         task = taskExec;
@@ -108,10 +114,10 @@ Esta função devolve o valor do tempo restante para terminar a execução da ta
 int task_get_ret(task_t *task) {
 
     if (task == NULL) {
-        return taskExec->remainingTime;
+        return taskExec->estimatedTime - taskExec->running_time;
     }
 
-    return task->remainingTime;
+    return task->estimatedTime - task->running_time;
 }
 
 void after_task_create (task_t *task ) {
